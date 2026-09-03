@@ -4,6 +4,7 @@ const state = {
   data: null,
   lastResult: null,
   batchRows: [],
+  batchInputs: [],
 };
 
 const el = {
@@ -158,7 +159,8 @@ async function copyResult() {
 
 function runBatch() {
   const lines = el.batchInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  state.batchRows = lines.map((line) => lookup(parseBatchLine(line), state.data));
+  state.batchInputs = lines.map((line) => parseBatchLine(line));
+  state.batchRows = state.batchInputs.map((input) => lookup(input, state.data));
   renderBatch();
 }
 
@@ -204,17 +206,17 @@ function runSearch() {
 }
 
 function renderBatch() {
-  el.batchTableBody.innerHTML = state.batchRows.map((row) => `
+  el.batchTableBody.innerHTML = state.batchRows.map((row, index) => `
     <tr>
       <td>${escapeHtml(row.hts)}</td>
       <td>${escapeHtml(row.confirmations.map((item) => item.label).join(" / "))}</td>
-      <td>${flagCell(row.flags.auto)}</td>
-      <td>${flagCell(row.flags.truck)}</td>
-      <td>${flagCell(row.flags.S)}</td>
-      <td>${flagCell(row.flags.A)}</td>
-      <td>${flagCell(row.flags.C)}</td>
-      <td>${flagCell(row.flags.wood)}</td>
-      <td>${flagCell(row.flags.semiconductor)}</td>
+      <td>${flagInput(index, "auto", row.flags.auto)}</td>
+      <td>${flagInput(index, "truck", row.flags.truck)}</td>
+      <td>${flagInput(index, "steel", row.flags.S)}</td>
+      <td>${flagInput(index, "aluminum", row.flags.A)}</td>
+      <td>${flagInput(index, "copper", row.flags.C)}</td>
+      <td>${flagInput(index, "wood", row.flags.wood)}</td>
+      <td>${flagInput(index, "semiconductor", row.flags.semiconductor)}</td>
       <td>${escapeHtml(row.tariff?.mfnRate || "")}</td>
       <td>${escapeHtml(row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "")}</td>
       <td>${escapeHtml(`${row.section301FL.chapter99 || ""} ${formatRate(row.section301FL.rate)}`)}</td>
@@ -224,6 +226,9 @@ function renderBatch() {
       <td>${escapeHtml(row.tariff?.description || "")}</td>
     </tr>
   `).join("");
+  el.batchTableBody.querySelectorAll("input[data-row][data-flag]").forEach((input) => {
+    input.addEventListener("input", updateBatchFlag);
+  });
 }
 
 function exportCsv() {
@@ -261,8 +266,20 @@ function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-function flagCell(value) {
-  return value ? '<span class="flag-y">Y</span>' : "";
+function flagInput(row, flag, value) {
+  return `<input class="flag-input" data-row="${row}" data-flag="${flag}" value="${value ? "Y" : ""}" maxlength="1" aria-label="${flag} Y flag" />`;
+}
+
+function updateBatchFlag(event) {
+  const input = event.currentTarget;
+  const row = Number(input.dataset.row);
+  const flag = input.dataset.flag;
+  const value = /^y$/i.test(input.value.trim());
+  input.value = value ? "Y" : "";
+  if (!state.batchInputs[row]) return;
+  state.batchInputs[row].flags[flag] = value;
+  state.batchRows[row] = lookup(state.batchInputs[row], state.data);
+  renderBatch();
 }
 
 function escapeHtml(value) {

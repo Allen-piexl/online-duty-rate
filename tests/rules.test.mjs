@@ -60,6 +60,13 @@ run("batch Y columns switch steel result", parseBatchLine("8429521020,CN,,,Y"), 
   assert.ok(r.section232.chapter99.includes("99038209") || r.section232.chapter99.includes("99038202") || r.section232.chapter99.includes("99038210"));
 });
 
+run("empty steel flag keeps exemption before Y", parseBatchLine("8429521020,CN"), (r) => {
+  assert.ok(r.confirmations.some((item) => item.label === "钢S"));
+  assert.equal(r.flags.S, false);
+  assert.ok(r.section232.chapter99.includes("99038203") || r.section232.chapter99.includes("99038201"));
+  assert.equal(r.section232.rate, 0);
+});
+
 run("wood furniture history case does not auto-trigger 232", {
   country: "CN",
   hts: "9403608081",

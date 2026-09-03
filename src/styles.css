@@ -276,16 +276,22 @@ th {
   gap: 14px;
 }
 
-.flag-y {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
+.flag-input {
+  width: 34px;
+  height: 28px;
+  padding: 3px;
   border-radius: 4px;
-  background: #fff0d5;
+  border: 1px solid #e3b35f;
+  background: #fff7e8;
   color: #9a4f00;
   font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.flag-input:focus {
+  outline: 2px solid #0f766e;
+  outline-offset: 1px;
 }
 
 .note-grid p {
