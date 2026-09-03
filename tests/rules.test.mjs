@@ -67,6 +67,12 @@ run("empty steel flag keeps exemption before Y", parseBatchLine("8429521020,CN")
   assert.equal(r.section232.rate, 0);
 });
 
+run("simple HTS line defaults inside app layer compatible parser", { hts: "3926909989", country: "CN" }, (r) => {
+  assert.equal(r.hts, "3926909989");
+  assert.equal(r.tariff.mfnRate, "5.3%");
+  assert.equal(r.section301FL.chapter99, "99030531");
+});
+
 run("wood furniture history case does not auto-trigger 232", {
   country: "CN",
   hts: "9403608081",

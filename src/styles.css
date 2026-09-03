@@ -178,6 +178,18 @@ button + button,
   margin-left: 0;
 }
 
+.batch-controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.batch-controls label {
+  width: 260px;
+  margin-bottom: 0;
+}
+
 .result-empty {
   color: var(--muted);
 }
@@ -294,6 +306,17 @@ th {
   outline-offset: 1px;
 }
 
+.batch-hts-input {
+  width: 132px;
+  padding: 6px 8px;
+  font-family: Consolas, monospace;
+}
+
+.batch-country-select {
+  width: 72px;
+  padding: 6px 8px;
+}
+
 .note-grid p {
   margin: 0;
   color: var(--muted);
@@ -333,6 +356,15 @@ a {
 
   .flags {
     grid-template-columns: 1fr;
+  }
+
+  .batch-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .batch-controls label {
+    width: 100%;
   }
 
   .status {

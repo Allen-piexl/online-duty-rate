@@ -24,6 +24,7 @@ const el = {
   },
   result: document.querySelector("#result"),
   batchInput: document.querySelector("#batchInput"),
+  batchCountry: document.querySelector("#batchCountry"),
   batchTableBody: document.querySelector("#batchTable tbody"),
   compareTableBody: document.querySelector("#compareTable tbody"),
   searchInput: document.querySelector("#searchInput"),
@@ -46,6 +47,7 @@ function bindEvents() {
   document.querySelector("#copyButton").addEventListener("click", copyResult);
   document.querySelector("#batchButton").addEventListener("click", runBatch);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
+  document.querySelector("#addRowButton").addEventListener("click", addBatchRow);
   document.querySelector("#compareButton").addEventListener("click", runCompare);
   document.querySelector("#searchButton").addEventListener("click", runSearch);
   el.searchInput.addEventListener("input", runSearch);
@@ -159,7 +161,11 @@ async function copyResult() {
 
 function runBatch() {
   const lines = el.batchInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  state.batchInputs = lines.map((line) => parseBatchLine(line));
+  state.batchInputs = lines.map((line) => {
+    const parsed = parseBatchLine(line);
+    if (!line.includes(",")) parsed.country = el.batchCountry.value;
+    return parsed;
+  });
   state.batchRows = state.batchInputs.map((input) => lookup(input, state.data));
   renderBatch();
 }
@@ -208,7 +214,8 @@ function runSearch() {
 function renderBatch() {
   el.batchTableBody.innerHTML = state.batchRows.map((row, index) => `
     <tr>
-      <td>${escapeHtml(row.hts)}</td>
+      <td>${htsInput(index, row.hts)}</td>
+      <td>${countrySelect(index, row.country)}</td>
       <td>${escapeHtml(row.confirmations.map((item) => item.label).join(" / "))}</td>
       <td>${flagInput(index, "auto", row.flags.auto)}</td>
       <td>${flagInput(index, "truck", row.flags.truck)}</td>
@@ -229,13 +236,20 @@ function renderBatch() {
   el.batchTableBody.querySelectorAll("input[data-row][data-flag]").forEach((input) => {
     input.addEventListener("input", updateBatchFlag);
   });
+  el.batchTableBody.querySelectorAll("input[data-row][data-field='hts']").forEach((input) => {
+    input.addEventListener("change", updateBatchField);
+  });
+  el.batchTableBody.querySelectorAll("select[data-row][data-field='country']").forEach((select) => {
+    select.addEventListener("change", updateBatchField);
+  });
 }
 
 function exportCsv() {
   if (!state.batchRows.length) runBatch();
-  const headers = ["HTS", "Need Confirm", "汽配", "卡配", "钢S", "铝A", "铜C", "木", "半导体", "MFN", "301", "301FL", "232", "OGA", "LIC", "Description"];
+  const headers = ["HTS", "Country", "Need Confirm", "汽配", "卡配", "钢S", "铝A", "铜C", "木", "半导体", "MFN", "301", "301FL", "232", "OGA", "LIC", "Description"];
   const rows = state.batchRows.map((row) => [
     row.hts,
+    row.country,
     row.confirmations.map((item) => item.label).join(" / "),
     row.flags.auto ? "Y" : "",
     row.flags.truck ? "Y" : "",
@@ -268,6 +282,37 @@ function csvCell(value) {
 
 function flagInput(row, flag, value) {
   return `<input class="flag-input" data-row="${row}" data-flag="${flag}" value="${value ? "Y" : ""}" maxlength="1" aria-label="${flag} Y flag" />`;
+}
+
+function htsInput(row, value) {
+  return `<input class="batch-hts-input" data-row="${row}" data-field="hts" value="${escapeHtml(value)}" aria-label="HTS code" />`;
+}
+
+function countrySelect(row, value) {
+  const countries = Object.keys(state.data.section301FL.countries);
+  return `<select class="batch-country-select" data-row="${row}" data-field="country" aria-label="Country of origin">
+    ${countries.map((country) => `<option value="${country}" ${country === value ? "selected" : ""}>${country}</option>`).join("")}
+  </select>`;
+}
+
+function addBatchRow() {
+  state.batchInputs.push({
+    hts: "",
+    country: el.batchCountry.value,
+    flags: { auto: false, truck: false, steel: false, aluminum: false, copper: false, wood: false, semiconductor: false },
+  });
+  state.batchRows.push(lookup(state.batchInputs.at(-1), state.data));
+  renderBatch();
+}
+
+function updateBatchField(event) {
+  const input = event.currentTarget;
+  const row = Number(input.dataset.row);
+  const field = input.dataset.field;
+  if (!state.batchInputs[row]) return;
+  state.batchInputs[row][field] = input.value.trim();
+  state.batchRows[row] = lookup(state.batchInputs[row], state.data);
+  renderBatch();
 }
 
 function updateBatchFlag(event) {

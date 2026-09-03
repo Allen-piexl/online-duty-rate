@@ -25,15 +25,32 @@
           <button id="exportButton" type="button">Export CSV</button>
         </div>
       </div>
-      <p class="hint">Paste rows as: <code>HTS, Country, 汽配, 卡配, 钢S, 铝A, 铜C, 木, 半导体</code>. Put <code>Y</code> when confirmed. Example: <code>8429521020,CN,, ,Y</code></p>
-      <textarea id="batchInput" rows="6">8429521020,CN,,,,,,
-8304000000,CN
-3926909989,CN</textarea>
+      <div class="batch-controls">
+        <label>
+          <span>Default country</span>
+          <select id="batchCountry">
+            <option value="CN">CN - China</option>
+            <option value="TW">TW - Taiwan</option>
+            <option value="VN">VN - Vietnam</option>
+            <option value="TH">TH - Thailand</option>
+            <option value="KH">KH - Cambodia</option>
+            <option value="IN">IN - India</option>
+            <option value="ID">ID - Indonesia</option>
+            <option value="PH">PH - Philippines</option>
+          </select>
+        </label>
+        <button id="addRowButton" type="button">Add blank row</button>
+      </div>
+      <p class="hint">Paste one HTS per line. You can also paste old CSV rows; country and Y flags can be edited in the table after running.</p>
+      <textarea id="batchInput" rows="6">8429521020
+8304000000
+3926909989</textarea>
       <div class="table-wrap">
         <table id="batchTable">
           <thead>
             <tr>
               <th>HTS</th>
+              <th>Country</th>
               <th>Need Confirm</th>
               <th>汽配</th>
               <th>卡配</th>
