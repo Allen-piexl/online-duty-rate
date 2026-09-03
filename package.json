@@ -1,0 +1,12 @@
+{
+  "name": "online-duty-rate-lookup",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "python scripts/extract_public_data.py",
+    "test": "node tests/rules.test.mjs",
+    "serve": "python -m http.server 8000"
+  }
+}
+

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Online Duty Rate Lookup</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Duty Rate Lookup</h1>
+        <p>HTS, Section 301, 301 Forced Labor, Section 232, OGA, CPSC, LIC, and ADD/CVD helper.</p>
+      </div>
+      <div class="status">
+        <span id="dataStatus">Loading data...</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel input-panel">
+        <div class="section-title">
+          <h2>Lookup</h2>
+          <button id="clearButton" type="button">Clear</button>
+        </div>
+
+        <label>
+          <span>Country of origin</span>
+          <select id="country">
+            <option value="CN">CN - China</option>
+            <option value="TW">TW - Taiwan</option>
+            <option value="VN">VN - Vietnam</option>
+            <option value="TH">TH - Thailand</option>
+            <option value="KH">KH - Cambodia</option>
+            <option value="IN">IN - India</option>
+            <option value="ID">ID - Indonesia</option>
+            <option value="PH">PH - Philippines</option>
+          </select>
+        </label>
+
+        <label>
+          <span>HTS</span>
+          <input id="hts" placeholder="6402.99.3165 or 6402993165" autocomplete="off" />
+        </label>
+
+        <label>
+          <span>Description</span>
+          <input id="description" placeholder="Optional product description" autocomplete="off" />
+        </label>
+
+        <label>
+          <span>Material</span>
+          <input id="material" placeholder="Optional material notes" autocomplete="off" />
+        </label>
+
+        <fieldset class="flags">
+          <legend>Section 232 manual flags</legend>
+          <label><input type="checkbox" id="flagAuto" /> Auto parts</label>
+          <label><input type="checkbox" id="flagTruck" /> Truck parts</label>
+          <label><input type="checkbox" id="flagSteel" /> Steel</label>
+          <label><input type="checkbox" id="flagAluminum" /> Aluminum</label>
+          <label><input type="checkbox" id="flagCopper" /> Copper</label>
+          <label><input type="checkbox" id="flagWood" /> Wood</label>
+          <label><input type="checkbox" id="flagSemiconductor" /> Semiconductor</label>
+        </fieldset>
+
+        <div class="actions">
+          <button id="lookupButton" type="button">Run lookup</button>
+          <button id="sampleButton" type="button">Load sample</button>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="section-title">
+          <h2>Result</h2>
+          <button id="copyButton" type="button">Copy result</button>
+        </div>
+        <div id="result" class="result-empty">Enter an HTS code to start.</div>
+      </section>
+    </main>
+
+    <section class="panel batch-panel">
+      <div class="section-title">
+        <h2>Batch Lookup</h2>
+        <div class="button-row">
+          <button id="batchButton" type="button">Run batch</button>
+          <button id="exportButton" type="button">Export CSV</button>
+        </div>
+      </div>
+      <p class="hint">Paste one item per line. Format: HTS, Country, optional flags. Example: <code>8708998180,CN,auto steel</code></p>
+      <textarea id="batchInput" rows="6">6402993165,CN
+6402993165,VN
+8708998180,CN,auto
+7615102015,CN,aluminum</textarea>
+      <div class="table-wrap">
+        <table id="batchTable">
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>HTS</th>
+              <th>Description</th>
+              <th>MFN</th>
+              <th>301</th>
+              <th>301 FL</th>
+              <th>232</th>
+              <th>OGA</th>
+              <th>LIC</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel notes-panel">
+      <h2>Rule Notes</h2>
+      <div class="note-grid">
+        <div>
+          <h3>Public data only</h3>
+          <p>This app uses rule/reference sheets from the duty lookup workbook. Customer case workbooks are not included.</p>
+        </div>
+        <div>
+          <h3>232 flags</h3>
+          <p>Manual flags do not create 232 by themselves. The HTS must first match a 232 rule; flags then select duty or exemption numbers.</p>
+        </div>
+        <div>
+          <h3>Final review</h3>
+          <p>This is a screening tool. Official HTS notes, PGA requirements, AD/CVD, and entry instructions still need review before filing.</p>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>
+
