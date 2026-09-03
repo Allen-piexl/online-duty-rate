@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { lookup, searchTariff, totalAddonRate } from "../src/rules.js";
+import { lookup, parseBatchLine, searchTariff, totalAddonRate } from "../src/rules.js";
 
 const data = JSON.parse(await readFile(new URL("../public/data/rules.json", import.meta.url), "utf8"));
 
@@ -51,6 +51,13 @@ run("aluminum sample", {
   assert.equal(r.oga.pga, "FD2");
   assert.equal(r.section232.matched, true);
   assert.deepEqual(r.section232.chapter99, ["99038209"]);
+  assert.ok(r.confirmations.some((item) => item.label === "铝A"));
+});
+
+run("batch Y columns switch steel result", parseBatchLine("8429521020,CN,,,Y"), (r) => {
+  assert.ok(r.confirmations.some((item) => item.label === "钢S"));
+  assert.equal(r.flags.S, true);
+  assert.ok(r.section232.chapter99.includes("99038209") || r.section232.chapter99.includes("99038202") || r.section232.chapter99.includes("99038210"));
 });
 
 run("wood furniture history case does not auto-trigger 232", {

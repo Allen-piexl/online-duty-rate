@@ -96,6 +96,10 @@ function renderResult(result) {
       result.section232.matched ? `Rate: ${formatRate(result.section232.rate)}` : "",
       ...result.section232.details,
     ])}
+    ${card("Need Confirm", result.confirmations.length ? result.confirmations.map((item) => item.label).join(" / ") : "None", [
+      result.confirmations.length ? "If confirmed, enter Y/check the matching flag; the 232 result will switch automatically." : "",
+      ...result.confirmations.map((item) => `${item.label}: ${item.reason}`),
+    ])}
     ${card("OGA / CPSC", result.oga?.pga || result.cpsc?.flag || "None", [
       result.cpsc?.flag ? `CPSC: ${result.cpsc.flag}` : "",
       result.oga?.effectiveDateSerial ? `Effective serial: ${result.oga.effectiveDateSerial}` : "",
@@ -202,32 +206,46 @@ function runSearch() {
 function renderBatch() {
   el.batchTableBody.innerHTML = state.batchRows.map((row) => `
     <tr>
-      <td>${escapeHtml(row.country)}</td>
       <td>${escapeHtml(row.hts)}</td>
-      <td>${escapeHtml(row.tariff?.description || "")}</td>
+      <td>${escapeHtml(row.confirmations.map((item) => item.label).join(" / "))}</td>
+      <td>${flagCell(row.flags.auto)}</td>
+      <td>${flagCell(row.flags.truck)}</td>
+      <td>${flagCell(row.flags.S)}</td>
+      <td>${flagCell(row.flags.A)}</td>
+      <td>${flagCell(row.flags.C)}</td>
+      <td>${flagCell(row.flags.wood)}</td>
+      <td>${flagCell(row.flags.semiconductor)}</td>
       <td>${escapeHtml(row.tariff?.mfnRate || "")}</td>
       <td>${escapeHtml(row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "")}</td>
       <td>${escapeHtml(`${row.section301FL.chapter99 || ""} ${formatRate(row.section301FL.rate)}`)}</td>
       <td>${escapeHtml(`${row.section232.chapter99.join(" / ")} ${formatRate(row.section232.rate)}`)}</td>
       <td>${escapeHtml(row.oga?.pga || row.cpsc?.flag || "")}</td>
       <td>${escapeHtml([row.lic.aluminum ? "AL" : "", row.lic.steel ? "STEEL" : ""].filter(Boolean).join(" / "))}</td>
+      <td>${escapeHtml(row.tariff?.description || "")}</td>
     </tr>
   `).join("");
 }
 
 function exportCsv() {
   if (!state.batchRows.length) runBatch();
-  const headers = ["Country", "HTS", "Description", "MFN", "301", "301FL", "232", "OGA", "LIC"];
+  const headers = ["HTS", "Need Confirm", "汽配", "卡配", "钢S", "铝A", "铜C", "木", "半导体", "MFN", "301", "301FL", "232", "OGA", "LIC", "Description"];
   const rows = state.batchRows.map((row) => [
-    row.country,
     row.hts,
-    row.tariff?.description || "",
+    row.confirmations.map((item) => item.label).join(" / "),
+    row.flags.auto ? "Y" : "",
+    row.flags.truck ? "Y" : "",
+    row.flags.S ? "Y" : "",
+    row.flags.A ? "Y" : "",
+    row.flags.C ? "Y" : "",
+    row.flags.wood ? "Y" : "",
+    row.flags.semiconductor ? "Y" : "",
     row.tariff?.mfnRate || "",
     row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "",
     `${row.section301FL.chapter99 || ""} ${formatRate(row.section301FL.rate)}`,
     `${row.section232.chapter99.join(" / ")} ${formatRate(row.section232.rate)}`,
     row.oga?.pga || row.cpsc?.flag || "",
     [row.lic.aluminum ? "AL" : "", row.lic.steel ? "STEEL" : ""].filter(Boolean).join(" / "),
+    row.tariff?.description || "",
   ]);
   const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -241,6 +259,10 @@ function exportCsv() {
 
 function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function flagCell(value) {
+  return value ? '<span class="flag-y">Y</span>' : "";
 }
 
 function escapeHtml(value) {

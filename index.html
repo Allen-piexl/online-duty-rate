@@ -17,6 +17,45 @@
       </div>
     </header>
 
+    <section class="panel batch-panel batch-first">
+      <div class="section-title">
+        <h2>Batch Lookup</h2>
+        <div class="button-row">
+          <button id="batchButton" type="button">Run batch</button>
+          <button id="exportButton" type="button">Export CSV</button>
+        </div>
+      </div>
+      <p class="hint">Paste rows as: <code>HTS, Country, 汽配, 卡配, 钢S, 铝A, 铜C, 木, 半导体</code>. Put <code>Y</code> when confirmed. Example: <code>8429521020,CN,, ,Y</code></p>
+      <textarea id="batchInput" rows="6">8429521020,CN,,,,,,
+8304000000,CN
+3926909989,CN</textarea>
+      <div class="table-wrap">
+        <table id="batchTable">
+          <thead>
+            <tr>
+              <th>HTS</th>
+              <th>Need Confirm</th>
+              <th>汽配</th>
+              <th>卡配</th>
+              <th>钢S</th>
+              <th>铝A</th>
+              <th>铜C</th>
+              <th>木</th>
+              <th>半导体</th>
+              <th>MFN</th>
+              <th>301</th>
+              <th>301 FL</th>
+              <th>232</th>
+              <th>OGA</th>
+              <th>LIC</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
     <main class="layout">
       <section class="panel input-panel">
         <div class="section-title">
@@ -117,39 +156,6 @@
               <th>MFN</th>
               <th>Units</th>
               <th>Action</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel batch-panel">
-      <div class="section-title">
-        <h2>Batch Lookup</h2>
-        <div class="button-row">
-          <button id="batchButton" type="button">Run batch</button>
-          <button id="exportButton" type="button">Export CSV</button>
-        </div>
-      </div>
-      <p class="hint">Paste one item per line. Format: HTS, Country, optional flags. Example: <code>8708998180,CN,auto steel</code></p>
-      <textarea id="batchInput" rows="6">6402993165,CN
-6402993165,VN
-8708998180,CN,auto
-7615102015,CN,aluminum</textarea>
-      <div class="table-wrap">
-        <table id="batchTable">
-          <thead>
-            <tr>
-              <th>Country</th>
-              <th>HTS</th>
-              <th>Description</th>
-              <th>MFN</th>
-              <th>301</th>
-              <th>301 FL</th>
-              <th>232</th>
-              <th>OGA</th>
-              <th>LIC</th>
             </tr>
           </thead>
           <tbody></tbody>

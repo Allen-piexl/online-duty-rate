@@ -78,6 +78,7 @@ export function lookup(input, data) {
   const baseRate = tariff ? parseRate(tariff.mfnRate) : null;
 
   const result232 = evaluate232(rule232, flags, baseRate);
+  const confirmations = buildConfirmations(rule232);
   const specialFl = data.section301FL.specialHts[hts] || null;
   const countryFl = data.section301FL.countries[country] || null;
   const resultFl = evaluate301Fl(specialFl, countryFl, result232);
@@ -103,12 +104,27 @@ export function lookup(input, data) {
     section301: result301,
     section301FL: resultFl,
     section232: result232,
+    confirmations,
     exclusions,
     lic,
     addUrl: hts ? `https://www.netchb.com/app/resources/completeTariffInfo.do?tariffNo=${hts}` : "",
     entrySequence: buildEntrySequence(result301, resultFl, result232, hts),
     warnings: buildWarnings(hts, tariff, result232, country),
   };
+}
+
+function buildConfirmations(rule) {
+  if (!rule) return [];
+  const items = [];
+  if (hasText(rule.auto)) items.push({ key: "auto", label: "汽配", reason: rule.auto });
+  if (hasText(rule.truck)) items.push({ key: "truck", label: "卡配", reason: rule.truck });
+  const materials = String(rule.materials || "");
+  if (materials.includes("S")) items.push({ key: "steel", label: "钢S", reason: rule.metal || rule.original });
+  if (materials.includes("A")) items.push({ key: "aluminum", label: "铝A", reason: rule.metal || rule.original });
+  if (materials.includes("C")) items.push({ key: "copper", label: "铜C", reason: rule.metal || rule.original });
+  if (hasText(rule.wood)) items.push({ key: "wood", label: "木", reason: rule.wood });
+  if (hasText(rule.semiconductor)) items.push({ key: "semiconductor", label: "半导体", reason: rule.semiconductor });
+  return items;
 }
 
 export function evaluate232(rule, flags, baseRate) {
@@ -236,8 +252,25 @@ export function searchTariff(query, data, limit = 25) {
 }
 
 export function parseBatchLine(line) {
-  const [hts = "", country = "CN", flagText = ""] = line.split(",").map((part) => part.trim());
-  const flagsRaw = flagText.toLowerCase();
+  const parts = line.split(",").map((part) => part.trim());
+  const [hts = "", country = "CN"] = parts;
+  const yes = (value) => /^(y|yes|1|true|是|有)$/i.test(String(value || "").trim());
+  if (parts.length >= 5) {
+    return {
+      hts,
+      country,
+      flags: {
+        auto: yes(parts[2]),
+        truck: yes(parts[3]),
+        steel: yes(parts[4]),
+        aluminum: yes(parts[5]),
+        copper: yes(parts[6]),
+        wood: yes(parts[7]),
+        semiconductor: yes(parts[8]),
+      },
+    };
+  }
+  const flagsRaw = (parts[2] || "").toLowerCase();
   return {
     hts,
     country,
