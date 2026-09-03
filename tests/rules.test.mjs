@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { lookup } from "../src/rules.js";
+import { lookup, searchTariff, totalAddonRate } from "../src/rules.js";
 
 const data = JSON.parse(await readFile(new URL("../public/data/rules.json", import.meta.url), "utf8"));
 
@@ -38,6 +38,8 @@ run("auto part history case with steel flag", {
   assert.deepEqual(r.section232.chapter99, ["99038209"]);
   assert.equal(r.section232.rate, 0.25);
   assert.equal(r.section301FL.chapter99, "99030590");
+  assert.deepEqual(r.entrySequence, ["99038803", "99030590", "99038209", "8708998180"]);
+  assert.equal(totalAddonRate(r), 0.5);
 });
 
 run("aluminum sample", {
@@ -63,3 +65,7 @@ run("wood furniture history case does not auto-trigger 232", {
 
 console.log("All rule tests passed.");
 
+const searchRows = searchTariff("footwear", data, 5);
+assert.ok(searchRows.length > 0);
+assert.ok(searchRows.some((row) => /Footwear/i.test(row.description)));
+console.log("ok - tariff search");

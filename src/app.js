@@ -1,4 +1,4 @@
-import { formatRate, lookup, parseBatchLine } from "./rules.js";
+import { formatRate, lookup, parseBatchLine, searchTariff, totalAddonRate } from "./rules.js";
 
 const state = {
   data: null,
@@ -24,6 +24,9 @@ const el = {
   result: document.querySelector("#result"),
   batchInput: document.querySelector("#batchInput"),
   batchTableBody: document.querySelector("#batchTable tbody"),
+  compareTableBody: document.querySelector("#compareTable tbody"),
+  searchInput: document.querySelector("#searchInput"),
+  searchTableBody: document.querySelector("#searchTable tbody"),
 };
 
 async function init() {
@@ -42,6 +45,9 @@ function bindEvents() {
   document.querySelector("#copyButton").addEventListener("click", copyResult);
   document.querySelector("#batchButton").addEventListener("click", runBatch);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
+  document.querySelector("#compareButton").addEventListener("click", runCompare);
+  document.querySelector("#searchButton").addEventListener("click", runSearch);
+  el.searchInput.addEventListener("input", runSearch);
   for (const input of [el.country, el.hts, el.description, el.material, ...Object.values(el.flags)]) {
     input.addEventListener("input", runLookup);
   }
@@ -61,6 +67,7 @@ function runLookup() {
   if (!state.data) return;
   state.lastResult = lookup(readInput(), state.data);
   renderResult(state.lastResult);
+  runCompare();
 }
 
 function renderResult(result) {
@@ -96,6 +103,7 @@ function renderResult(result) {
     ${card("LIC", result.lic.aluminum || result.lic.steel ? [result.lic.aluminum ? "Aluminum" : "", result.lic.steel ? "Steel" : ""].filter(Boolean).join(" / ") : "None", [])}
     ${card("301 Exclusion", result.exclusions.length ? `${result.exclusions.length} match(es)` : "None", result.exclusions.slice(0, 2).map((item) => item.description || item.full || item.partial))}
     ${card("ADD / CVD", `<a href="${result.addUrl}" target="_blank" rel="noreferrer">Open NetCHB lookup</a>`, [])}
+    ${card("Entry Sequence", result.entrySequence.join(" / ") || "None", ["Chapter 99 order: 301, 301FL, 232, then Chapter 1-97 HTS."])}
     ${result.warnings.length ? `<div class="wide warning"><strong>Warnings</strong><ul>${result.warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
   `;
 }
@@ -148,6 +156,47 @@ function runBatch() {
   const lines = el.batchInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   state.batchRows = lines.map((line) => lookup(parseBatchLine(line), state.data));
   renderBatch();
+}
+
+function runCompare() {
+  if (!state.data || !el.hts.value.trim()) {
+    el.compareTableBody.innerHTML = "";
+    return;
+  }
+  const countries = Object.keys(state.data.section301FL.countries);
+  const baseInput = readInput();
+  const rows = countries.map((country) => lookup({ ...baseInput, country }, state.data));
+  el.compareTableBody.innerHTML = rows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.country)}</td>
+      <td>${escapeHtml(row.tariff?.mfnRate || "")}</td>
+      <td>${escapeHtml(row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "")}</td>
+      <td>${escapeHtml(`${row.section301FL.chapter99 || ""} ${formatRate(row.section301FL.rate)}`)}</td>
+      <td>${escapeHtml(`${row.section232.chapter99.join(" / ")} ${formatRate(row.section232.rate)}`)}</td>
+      <td>${escapeHtml(formatRate(totalAddonRate(row)))}</td>
+    </tr>
+  `).join("");
+}
+
+function runSearch() {
+  if (!state.data) return;
+  const rows = searchTariff(el.searchInput.value, state.data, 30);
+  el.searchTableBody.innerHTML = rows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.hts8)}</td>
+      <td>${escapeHtml(row.description)}</td>
+      <td>${escapeHtml(row.mfnRate)}</td>
+      <td>${escapeHtml([row.quantity1, row.quantity2].filter(Boolean).join(" / "))}</td>
+      <td><button type="button" data-hts="${escapeHtml(row.hts8)}">Use</button></td>
+    </tr>
+  `).join("");
+  el.searchTableBody.querySelectorAll("button[data-hts]").forEach((button) => {
+    button.addEventListener("click", () => {
+      el.hts.value = button.dataset.hts;
+      runLookup();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
 }
 
 function renderBatch() {
@@ -207,4 +256,3 @@ init().catch((error) => {
   el.dataStatus.textContent = "Failed to load data";
   el.result.textContent = error.message;
 });
-

@@ -106,6 +106,7 @@ export function lookup(input, data) {
     exclusions,
     lic,
     addUrl: hts ? `https://www.netchb.com/app/resources/completeTariffInfo.do?tariffNo=${hts}` : "",
+    entrySequence: buildEntrySequence(result301, resultFl, result232, hts),
     warnings: buildWarnings(hts, tariff, result232, country),
   };
 }
@@ -200,6 +201,40 @@ function buildWarnings(hts, tariff, result232, country) {
   return warnings;
 }
 
+function buildEntrySequence(section301, section301FL, section232, hts) {
+  const sequence = [];
+  if (section301?.chapter99) sequence.push(section301.chapter99);
+  if (section301FL?.chapter99) sequence.push(section301FL.chapter99);
+  for (const code of section232.chapter99 || []) {
+    if (code && !sequence.includes(code)) sequence.push(code);
+  }
+  if (hts) sequence.push(hts);
+  return sequence;
+}
+
+export function totalAddonRate(result) {
+  const section301 = result.section301 ? parseRate(result.section301.rate) || 0 : 0;
+  const section301Fl = parseRate(result.section301FL.rate) || 0;
+  const section232 = result.section232.rate || 0;
+  return section301 + section301Fl + section232;
+}
+
+export function searchTariff(query, data, limit = 25) {
+  const text = String(query || "").trim().toLowerCase();
+  if (!text) return [];
+  const numeric = normalizeHts(text);
+  const matches = [];
+  for (const [hts8, item] of Object.entries(data.tariff)) {
+    const byHts = numeric && hts8.startsWith(numeric.slice(0, 8));
+    const byText = item.description.toLowerCase().includes(text);
+    if (byHts || byText) {
+      matches.push({ hts8, ...item });
+      if (matches.length >= limit) break;
+    }
+  }
+  return matches;
+}
+
 export function parseBatchLine(line) {
   const [hts = "", country = "CN", flagText = ""] = line.split(",").map((part) => part.trim());
   const flagsRaw = flagText.toLowerCase();
@@ -217,4 +252,3 @@ export function parseBatchLine(line) {
     },
   };
 }
-

@@ -79,6 +79,51 @@
       </section>
     </main>
 
+    <section class="panel tools-panel">
+      <div class="section-title">
+        <h2>Country Compare</h2>
+        <button id="compareButton" type="button">Compare current HTS</button>
+      </div>
+      <div class="table-wrap">
+        <table id="compareTable">
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>MFN</th>
+              <th>301 China</th>
+              <th>301 FL</th>
+              <th>232</th>
+              <th>Total Add-on</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel tools-panel">
+      <div class="section-title">
+        <h2>HTS Search</h2>
+        <button id="searchButton" type="button">Search</button>
+      </div>
+      <p class="hint">Search by HTS prefix or description keyword from the public base tariff database.</p>
+      <input id="searchInput" placeholder="Try 64029931, footwear, aluminum, furniture" />
+      <div class="table-wrap">
+        <table id="searchTable">
+          <thead>
+            <tr>
+              <th>HTS8</th>
+              <th>Description</th>
+              <th>MFN</th>
+              <th>Units</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="panel batch-panel">
       <div class="section-title">
         <h2>Batch Lookup</h2>
@@ -124,6 +169,10 @@
           <p>Manual flags do not create 232 by themselves. The HTS must first match a 232 rule; flags then select duty or exemption numbers.</p>
         </div>
         <div>
+          <h3>HTS sequence</h3>
+          <p>When multiple Chapter 99 numbers apply, use 301, then 301 Forced Labor, then 232, followed by the Chapter 1-97 HTS.</p>
+        </div>
+        <div>
           <h3>Final review</h3>
           <p>This is a screening tool. Official HTS notes, PGA requirements, AD/CVD, and entry instructions still need review before filing.</p>
         </div>
@@ -133,4 +182,3 @@
     <script type="module" src="src/app.js"></script>
   </body>
 </html>
-
