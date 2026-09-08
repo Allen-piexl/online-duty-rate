@@ -85,10 +85,10 @@ function renderResult(result) {
     ${card("Base Tariff", result.tariff?.mfnRate || "No match", [
       result.tariff?.description || "",
       [result.tariff?.quantity1, result.tariff?.quantity2].filter(Boolean).join(" / "),
-    ])}
+    ], result.hts && !result.tariff ? "error" : "")}
     ${card("Section 301 China", result.section301 ? result.section301.chapter99 : "None", [
       result.section301 ? formatRate(result.section301.rate) : result.country === "CN" ? "No matching China 301 row." : "Hidden for non-CN origin.",
-    ])}
+    ], has301Exemption(result) ? "exemption" : "")}
     ${card("301 Forced Labor", result.section301FL.chapter99 || "None", [
       formatRate(result.section301FL.rate),
       result.section301FL.source,
@@ -108,17 +108,18 @@ function renderResult(result) {
       result.oga?.effectiveDateSerial ? `Effective serial: ${result.oga.effectiveDateSerial}` : "",
     ])}
     ${card("LIC", result.lic.aluminum || result.lic.steel ? [result.lic.aluminum ? "Aluminum" : "", result.lic.steel ? "Steel" : ""].filter(Boolean).join(" / ") : "None", [])}
-    ${card("301 Exclusion", result.exclusions.length ? `${result.exclusions.length} match(es)` : "None", result.exclusions.slice(0, 2).map((item) => item.description || item.full || item.partial))}
+    ${card("301 Exclusion", result.exclusions.length ? `${result.exclusions.length} match(es)` : "None", result.exclusions.slice(0, 2).map((item) => item.description || item.full || item.partial), has301Exemption(result) ? "exemption" : "")}
     ${card("ADD / CVD", `<a href="${result.addUrl}" target="_blank" rel="noreferrer">Open NetCHB lookup</a>`, [])}
     ${card("Entry Sequence", result.entrySequence.join(" / ") || "None", ["Chapter 99 order: 301, 301FL, 232, then Chapter 1-97 HTS."])}
     ${result.warnings.length ? `<div class="wide warning"><strong>Warnings</strong><ul>${result.warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
   `;
 }
 
-function card(title, value, details) {
+function card(title, value, details, tone = "") {
   const detailHtml = details.filter(Boolean).map((item) => `<p>${escapeHtml(String(item))}</p>`).join("");
   const safeValue = String(value).includes("<a ") ? value : escapeHtml(String(value));
-  return `<article class="card"><h3>${escapeHtml(title)}</h3><div class="value">${safeValue}</div>${detailHtml}</article>`;
+  const classes = ["card", tone ? `card-${tone}` : ""].filter(Boolean).join(" ");
+  return `<article class="${classes}"><h3>${escapeHtml(title)}</h3><div class="value">${safeValue}</div>${detailHtml}</article>`;
 }
 
 function clearForm() {
@@ -213,19 +214,19 @@ function runSearch() {
 
 function renderBatch() {
   el.batchTableBody.innerHTML = state.batchRows.map((row, index) => `
-    <tr>
-      <td>${htsInput(index, row.hts)}</td>
+    <tr class="${batchRowClass(row)}">
+      <td>${htsInput(index, row.hts, batchIssues(row).join(" / "))}</td>
       <td>${countrySelect(index, row.country)}</td>
-      <td>${escapeHtml(row.confirmations.map((item) => item.label).join(" / "))}</td>
-      <td>${flagInput(index, "auto", row.flags.auto)}</td>
-      <td>${flagInput(index, "truck", row.flags.truck)}</td>
-      <td>${flagInput(index, "steel", row.flags.S)}</td>
-      <td>${flagInput(index, "aluminum", row.flags.A)}</td>
-      <td>${flagInput(index, "copper", row.flags.C)}</td>
-      <td>${flagInput(index, "wood", row.flags.wood)}</td>
-      <td>${flagInput(index, "semiconductor", row.flags.semiconductor)}</td>
+      <td class="confirm-cell">${confirmBadge(row)}</td>
+      <td>${flagInput(index, "auto", row.flags.auto, needsFlag(row, "auto"))}</td>
+      <td>${flagInput(index, "truck", row.flags.truck, needsFlag(row, "truck"))}</td>
+      <td>${flagInput(index, "steel", row.flags.S, needsFlag(row, "steel"))}</td>
+      <td>${flagInput(index, "aluminum", row.flags.A, needsFlag(row, "aluminum"))}</td>
+      <td>${flagInput(index, "copper", row.flags.C, needsFlag(row, "copper"))}</td>
+      <td>${flagInput(index, "wood", row.flags.wood, needsFlag(row, "wood"))}</td>
+      <td>${flagInput(index, "semiconductor", row.flags.semiconductor, needsFlag(row, "semiconductor"))}</td>
       <td>${escapeHtml(row.tariff?.mfnRate || "")}</td>
-      <td>${escapeHtml(row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "")}</td>
+      <td class="${section301CellClass(row)}">${escapeHtml(row.section301 ? `${row.section301.chapter99} ${formatRate(row.section301.rate)}` : "")}</td>
       <td>${escapeHtml(`${row.section301FL.chapter99 || ""} ${formatRate(row.section301FL.rate)}`)}</td>
       <td>${escapeHtml(`${row.section232.chapter99.join(" / ")} ${formatRate(row.section232.rate)}`)}</td>
       <td>${escapeHtml(row.oga?.pga || row.cpsc?.flag || "")}</td>
@@ -280,12 +281,15 @@ function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-function flagInput(row, flag, value) {
-  return `<input class="flag-input" data-row="${row}" data-flag="${flag}" value="${value ? "Y" : ""}" maxlength="1" aria-label="${flag} Y flag" />`;
+function flagInput(row, flag, value, needed) {
+  const classes = ["flag-input", needed ? "flag-needed" : "flag-muted"].filter(Boolean).join(" ");
+  const disabled = needed ? "" : " disabled";
+  return `<input class="${classes}" data-row="${row}" data-flag="${flag}" value="${value ? "Y" : ""}" maxlength="1" placeholder="${needed ? "Y" : ""}" aria-label="${flag} Y flag"${disabled} />`;
 }
 
-function htsInput(row, value) {
-  return `<input class="batch-hts-input" data-row="${row}" data-field="hts" value="${escapeHtml(value)}" aria-label="HTS code" />`;
+function htsInput(row, value, issue) {
+  const title = issue ? ` title="${escapeHtml(issue)}"` : "";
+  return `<input class="batch-hts-input" data-row="${row}" data-field="hts" value="${escapeHtml(value)}" aria-label="HTS code"${title} />`;
 }
 
 function countrySelect(row, value) {
@@ -325,6 +329,43 @@ function updateBatchFlag(event) {
   state.batchInputs[row].flags[flag] = value;
   state.batchRows[row] = lookup(state.batchInputs[row], state.data);
   renderBatch();
+}
+
+function needsFlag(row, key) {
+  return row.confirmations.some((item) => item.key === key);
+}
+
+function batchIssues(row) {
+  const issues = [];
+  if (!row.hts) return issues;
+  if (row.hts.length !== 10) issues.push("HTS must be 10 digits");
+  if (!row.tariff) issues.push("No HTS match");
+  return issues;
+}
+
+function has301Exemption(row) {
+  const code = row.section301?.chapter99 || "";
+  return code === "99038869" || code === "99038870" || row.exclusions.some((item) => [item.full, item.partial].includes("99038869"));
+}
+
+function batchRowClass(row) {
+  const classes = [];
+  if (batchIssues(row).length) classes.push("row-error");
+  if (has301Exemption(row)) classes.push("row-exemption");
+  if (row.confirmations.length) classes.push("row-confirm");
+  return classes.join(" ");
+}
+
+function section301CellClass(row) {
+  return has301Exemption(row) ? "exemption-cell" : "";
+}
+
+function confirmBadge(row) {
+  const issues = batchIssues(row);
+  if (issues.length) return `<span class="status-badge status-error">${escapeHtml(issues.join(" / "))}</span>`;
+  if (has301Exemption(row)) return `<span class="status-badge status-exemption">301 Excl</span>`;
+  if (row.confirmations.length) return row.confirmations.map((item) => `<span class="status-badge status-confirm">${escapeHtml(item.label)}</span>`).join("");
+  return "";
 }
 
 function escapeHtml(value) {
