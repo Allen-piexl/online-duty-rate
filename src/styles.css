@@ -163,6 +163,28 @@ button:hover {
   background: var(--accent-dark);
 }
 
+button,
+.button-link {
+  text-decoration: none;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button-link:hover {
+  background: var(--accent-dark);
+}
+
 button + button,
 .button-row {
   margin-left: 8px;
@@ -171,7 +193,8 @@ button + button,
 #clearButton,
 #copyButton,
 #sampleButton,
-#exportButton {
+#exportButton,
+.button-link.secondary {
   background: white;
   color: var(--accent-dark);
 }
@@ -267,7 +290,8 @@ button + button,
 
 .tools-panel,
 .batch-panel,
-.notes-panel {
+.notes-panel,
+.update-panel {
   margin: 0 32px 18px;
 }
 
@@ -452,7 +476,8 @@ a {
 
   .tools-panel,
   .batch-panel,
-  .notes-panel {
+  .notes-panel,
+  .update-panel {
     margin-left: 16px;
     margin-right: 16px;
   }

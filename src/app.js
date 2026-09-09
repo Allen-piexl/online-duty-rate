@@ -35,7 +35,8 @@ async function init() {
   const response = await fetch("public/data/rules.json");
   state.data = await response.json();
   const summary = await fetch("public/data/summary.json").then((item) => item.json());
-  el.dataStatus.textContent = `${summary.tariff.toLocaleString()} HTS base rows, ${summary.section232.toLocaleString()} 232 rows`;
+  const version = summary.version || state.data.meta?.version || "unknown version";
+  el.dataStatus.textContent = `${version}: ${summary.tariff.toLocaleString()} HTS base rows, ${summary.section232.toLocaleString()} 232 rows`;
   bindEvents();
   runLookup();
 }

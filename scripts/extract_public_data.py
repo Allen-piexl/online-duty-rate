@@ -101,10 +101,36 @@ def add_if_value(target: dict[str, str], key: str, value: str) -> None:
         target[key] = value
 
 
+def workbook_version(workbook: Path) -> str:
+    match = re.search(r"v\d+(?:\.\d+)*(?:\s+Beta\s+\d+)?", workbook.stem, re.IGNORECASE)
+    return match.group(0) if match else workbook.stem
+
+
+def workbook_sort_key(workbook: Path) -> tuple[tuple[int, ...], float]:
+    numbers = tuple(int(value) for value in re.findall(r"\d+", workbook.name))
+    return numbers, workbook.stat().st_mtime
+
+
+def find_source_workbook(project_dir: Path) -> Path:
+    candidates = []
+    for source_dir in (project_dir / "data-source", project_dir.parent):
+        if source_dir.exists():
+            candidates.extend(
+                workbook
+                for workbook in source_dir.glob("*DUTY RATE LOOKUP*.xlsx")
+                if not workbook.name.startswith("~$")
+            )
+    if not candidates:
+        raise FileNotFoundError(
+            "No *DUTY RATE LOOKUP*.xlsx workbook found in data-source/ or the parent directory."
+        )
+    return max(candidates, key=workbook_sort_key)
+
+
 def main() -> None:
     project_dir = Path(__file__).resolve().parents[1]
-    source_dir = project_dir.parent
-    workbook = next(source_dir.glob("*DUTY RATE LOOKUP*.xlsx"))
+    workbook = find_source_workbook(project_dir)
+    version = workbook_version(workbook)
     out_dir = project_dir / "public" / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -240,7 +266,7 @@ def main() -> None:
         "meta": {
             "sourceWorkbook": workbook.name,
             "generatedFrom": "public rule sheets only",
-            "version": "v16.17 Beta 072926 - 232判定",
+            "version": version,
         },
         "tariff": tariff,
         "oga": oga,
@@ -262,6 +288,8 @@ def main() -> None:
     target = out_dir / "rules.json"
     target.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     summary = {
+        "sourceWorkbook": workbook.name,
+        "version": version,
         "tariff": len(tariff),
         "oga": len(oga),
         "cpsc": len(cpsc),
@@ -273,9 +301,8 @@ def main() -> None:
         "section301Exclusions": len(exclusions),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    print(json.dumps(summary, ensure_ascii=True, indent=2))
 
 
 if __name__ == "__main__":
     main()
-

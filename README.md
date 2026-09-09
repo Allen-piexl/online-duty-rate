@@ -15,11 +15,29 @@ A static browser-based HTS duty lookup tool converted from the internal Excel ra
 
 ## Public data policy
 
-This project intentionally extracts only rule/reference data from `♥DUTY RATE LOOKUP v16.17 Beta 072926 - 232判定.xlsx`.
+This project intentionally extracts only rule/reference data from the latest `*DUTY RATE LOOKUP*.xlsx` workbook.
 
 It does not publish `000 - OTHERS LOOKUP Letitia.xlsx` customer examples, orders, SKUs, product images, or historical client worksheets.
 
-## Regenerate data
+## Update Data From A New Workbook
+
+For local updates, put the newest workbook one directory above this project or in `data-source/`, then run:
+
+```powershell
+npm run extract
+npm test
+```
+
+The extractor automatically uses the highest-version matching workbook, such as `v16.18 Beta 090326`, and writes:
+
+- `public/data/rules.json`
+- `public/data/summary.json`
+
+For online updates, open the Data Update section in the site and upload the newest workbook to `data-source/` on GitHub. The `Update duty data` GitHub Actions workflow will regenerate the public JSON files, run tests, and commit the generated data.
+
+Only upload rule/reference workbooks. Do not upload customer order workbooks or files containing client data.
+
+## Regenerate Data
 
 From the repository root:
 
@@ -27,9 +45,9 @@ From the repository root:
 python scripts/extract_public_data.py
 ```
 
-The script expects the original Excel workbook one directory above this project.
+The script looks in `data-source/` and the parent directory for the latest `*DUTY RATE LOOKUP*.xlsx` workbook.
 
-## Run locally
+## Run Locally
 
 Open `index.html` directly in a browser, or serve the folder:
 
@@ -42,4 +60,3 @@ Then visit `http://localhost:8000`.
 ## GitHub Pages
 
 This is a static site. Push this folder to a public GitHub repository and enable GitHub Pages from the repository root.
-
