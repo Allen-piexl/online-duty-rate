@@ -23,13 +23,27 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Check for source workbook
+        id: workbook
+        shell: bash
+        run: |
+          if compgen -G "data-source/*DUTY RATE LOOKUP*.xlsx" > /dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No source workbook uploaded yet. Skipping data refresh."
+          fi
+
       - name: Extract public rule data
+        if: steps.workbook.outputs.found == 'true'
         run: python scripts/extract_public_data.py
 
       - name: Run rule tests
+        if: steps.workbook.outputs.found == 'true'
         run: npm test
 
       - name: Commit generated data
+        if: steps.workbook.outputs.found == 'true'
         run: |
           if git diff --quiet public/data/rules.json public/data/summary.json; then
             echo "No generated data changes."
