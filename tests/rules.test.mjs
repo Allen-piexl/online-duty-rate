@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { extractCustomerHtsCandidates } from "../src/customer-import.js";
 import { lookup, parseBatchLine, searchTariff, totalAddonRate } from "../src/rules.js";
 
 const data = JSON.parse(await readFile(new URL("../public/data/rules.json", import.meta.url), "utf8"));
@@ -51,17 +52,17 @@ run("aluminum sample", {
   assert.equal(r.oga.pga, "FD2");
   assert.equal(r.section232.matched, true);
   assert.deepEqual(r.section232.chapter99, ["99038209"]);
-  assert.ok(r.confirmations.some((item) => item.label === "铝A"));
+  assert.ok(r.confirmations.some((item) => item.label === "Aluminum"));
 });
 
 run("batch Y columns switch steel result", parseBatchLine("8429521020,CN,,,Y"), (r) => {
-  assert.ok(r.confirmations.some((item) => item.label === "钢S"));
+  assert.ok(r.confirmations.some((item) => item.label === "Steel"));
   assert.equal(r.flags.S, true);
   assert.ok(r.section232.chapter99.includes("99038209") || r.section232.chapter99.includes("99038202") || r.section232.chapter99.includes("99038210"));
 });
 
 run("empty steel flag keeps exemption before Y", parseBatchLine("8429521020,CN"), (r) => {
-  assert.ok(r.confirmations.some((item) => item.label === "钢S"));
+  assert.ok(r.confirmations.some((item) => item.label === "Steel"));
   assert.equal(r.flags.S, false);
   assert.ok(r.section232.chapter99.includes("99038203") || r.section232.chapter99.includes("99038201"));
   assert.equal(r.section232.rate, 0);
@@ -83,9 +84,62 @@ run("wood furniture history case does not auto-trigger 232", {
   assert.deepEqual(r.section232.chapter99, []);
 });
 
-console.log("All rule tests passed.");
-
 const searchRows = searchTariff("footwear", data, 5);
 assert.ok(searchRows.length > 0);
 assert.ok(searchRows.some((row) => /Footwear/i.test(row.description)));
 console.log("ok - tariff search");
+
+const fixtureData = {
+  tariff: {
+    "39249056": { description: "Household articles", mfnRate: "3.4%" },
+    "84672100": { description: "Drills", mfnRate: "1.7%" },
+  },
+  section301: {},
+  section232: {},
+  oga: {},
+  cpsc: {},
+};
+
+const bilingualHeaderCandidates = extractCustomerHtsCandidates([
+  {
+    name: "Invoice",
+    rows: [
+      ["Description", "HS code\n\u6d77\u5173\u7f16\u7801", "Amount"],
+      ["Bottle", "3924.90.5650", "10"],
+      ["Date", "20260807", ""],
+      ["Total", "", "10"],
+    ],
+  },
+], fixtureData);
+assert.equal(bilingualHeaderCandidates[0].hts, "3924905650");
+assert.equal(bilingualHeaderCandidates[0].selected, true);
+assert.ok(!bilingualHeaderCandidates.some((item) => item.hts === "20260807" && item.selected));
+console.log("ok - customer import bilingual header");
+
+const looseCandidates = extractCustomerHtsCandidates([
+  {
+    name: "packingList",
+    rows: [
+      ["B/L", "4055267729", "Container"],
+      ["Item", "8467210010", "Drill"],
+    ],
+  },
+], fixtureData);
+assert.ok(looseCandidates.some((item) => item.hts === "8467210010"));
+assert.ok(!looseCandidates.find((item) => item.hts === "4055267729")?.selected);
+console.log("ok - customer import loose candidates");
+
+const chapter99Candidates = extractCustomerHtsCandidates([
+  {
+    name: "IV",
+    rows: [
+      ["HS CODE", "Extra"],
+      ["8467210010", "99030531"],
+    ],
+  },
+], fixtureData);
+assert.equal(chapter99Candidates.find((item) => item.hts === "99030531")?.selected, false);
+assert.equal(chapter99Candidates.find((item) => item.hts === "8467210010")?.selected, true);
+console.log("ok - customer import chapter 99 handling");
+
+console.log("All tests passed.");

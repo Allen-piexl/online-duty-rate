@@ -1,10 +1,14 @@
+import { parseCustomerWorkbookFile } from "./customer-import.js";
 import { formatRate, lookup, parseBatchLine, searchTariff, totalAddonRate } from "./rules.js";
+
+const DEFAULT_BATCH_TEXT = "8429521020\n8304000000\n3926909989";
 
 const state = {
   data: null,
   lastResult: null,
   batchRows: [],
   batchInputs: [],
+  customerImportCandidates: [],
 };
 
 const el = {
@@ -26,6 +30,12 @@ const el = {
   batchInput: document.querySelector("#batchInput"),
   batchCountry: document.querySelector("#batchCountry"),
   batchTableBody: document.querySelector("#batchTable tbody"),
+  customerWorkbook: document.querySelector("#customerWorkbook"),
+  scanCustomerWorkbookButton: document.querySelector("#scanCustomerWorkbookButton"),
+  importCustomerRowsButton: document.querySelector("#importCustomerRowsButton"),
+  customerImportStatus: document.querySelector("#customerImportStatus"),
+  customerImportPanel: document.querySelector("#customerImportPanel"),
+  customerImportTableBody: document.querySelector("#customerImportTable tbody"),
   compareTableBody: document.querySelector("#compareTable tbody"),
   searchInput: document.querySelector("#searchInput"),
   searchTableBody: document.querySelector("#searchTable tbody"),
@@ -54,6 +64,8 @@ function bindEvents() {
   document.querySelector("#batchButton").addEventListener("click", runBatch);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
   document.querySelector("#addRowButton").addEventListener("click", addBatchRow);
+  el.scanCustomerWorkbookButton.addEventListener("click", scanCustomerWorkbook);
+  el.importCustomerRowsButton.addEventListener("click", importSelectedCustomerRows);
   document.querySelector("#compareButton").addEventListener("click", runCompare);
   document.querySelector("#searchButton").addEventListener("click", runSearch);
   if (el.uploadForm) {
@@ -249,6 +261,155 @@ function runBatch() {
   renderBatch();
 }
 
+async function scanCustomerWorkbook() {
+  const files = [...(el.customerWorkbook.files || [])];
+  if (!files.length) {
+    setCustomerImportStatus("Choose one or more customer Excel files first.", "error");
+    return;
+  }
+  if (!globalThis.XLSX) {
+    setCustomerImportStatus("Excel parser did not load. Check the network connection and refresh.", "error");
+    return;
+  }
+
+  el.scanCustomerWorkbookButton.disabled = true;
+  el.importCustomerRowsButton.disabled = true;
+  state.customerImportCandidates = [];
+  renderCustomerImportPreview();
+  setCustomerImportStatus(`Scanning ${files.length} workbook(s)...`);
+
+  try {
+    const allCandidates = [];
+    for (const file of files) {
+      const candidates = await parseCustomerWorkbookFile(file, state.data);
+      allCandidates.push(...candidates);
+    }
+    state.customerImportCandidates = mergeImportCandidates(allCandidates);
+    renderCustomerImportPreview();
+    const selectedCount = state.customerImportCandidates.filter((item) => item.selected).length;
+    const reviewCount = state.customerImportCandidates.length - selectedCount;
+    setCustomerImportStatus(`Found ${state.customerImportCandidates.length} candidate HTS code(s). ${selectedCount} selected, ${reviewCount} need review.`, selectedCount ? "success" : "warning");
+  } catch (error) {
+    setCustomerImportStatus(error.message || "Could not scan the workbook.", "error");
+  } finally {
+    el.scanCustomerWorkbookButton.disabled = false;
+    el.importCustomerRowsButton.disabled = state.customerImportCandidates.every((item) => !item.selected);
+  }
+}
+
+function mergeImportCandidates(candidates) {
+  const byHts = new Map();
+  for (const candidate of candidates) {
+    const existing = byHts.get(candidate.hts);
+    if (!existing || candidate.score > existing.score) {
+      byHts.set(candidate.hts, { ...candidate, sources: candidate.sources || [candidate.source].filter(Boolean) });
+    } else if (existing) {
+      existing.sources = [...existing.sources, ...(candidate.sources || [candidate.source].filter(Boolean))].slice(0, 4);
+      existing.warnings = [...new Set([...(existing.warnings || []), ...(candidate.warnings || [])])];
+    }
+  }
+  return [...byHts.values()].sort((a, b) => b.score - a.score || a.hts.localeCompare(b.hts));
+}
+
+function renderCustomerImportPreview() {
+  const candidates = state.customerImportCandidates;
+  el.customerImportPanel.hidden = candidates.length === 0;
+  el.customerImportTableBody.innerHTML = candidates.map((candidate, index) => {
+    const source = candidate.source || candidate.sources?.[0] || {};
+    const sourceText = [source.fileName, source.sheetName, source.cell].filter(Boolean).join(" / ");
+    const notes = [
+      candidate.kind === "chapter99" ? "Chapter 99 extra code" : "",
+      candidate.hasTariff ? "Base tariff matched" : "No base tariff match",
+      ...(candidate.warnings || []),
+    ].filter(Boolean);
+    return `
+      <tr class="${candidate.selected ? "" : "row-review"}">
+        <td><input type="checkbox" data-import-row="${index}" ${candidate.selected ? "checked" : ""} aria-label="Use ${escapeHtml(candidate.hts)}" /></td>
+        <td><code>${escapeHtml(candidate.hts)}</code></td>
+        <td>${confidenceBadge(candidate.score)}</td>
+        <td>${escapeHtml(sourceText || "Unknown source")}</td>
+        <td>${escapeHtml(notes.join(" / "))}</td>
+      </tr>
+    `;
+  }).join("");
+  el.customerImportTableBody.querySelectorAll("input[data-import-row]").forEach((checkbox) => {
+    checkbox.addEventListener("change", updateCustomerImportSelection);
+  });
+}
+
+function updateCustomerImportSelection(event) {
+  const index = Number(event.currentTarget.dataset.importRow);
+  if (!state.customerImportCandidates[index]) return;
+  state.customerImportCandidates[index].selected = event.currentTarget.checked;
+  el.importCustomerRowsButton.disabled = state.customerImportCandidates.every((item) => !item.selected);
+}
+
+function importSelectedCustomerRows() {
+  const selected = state.customerImportCandidates.filter((item) => item.selected && item.kind === "base");
+  if (!selected.length) {
+    setCustomerImportStatus("Select at least one product HTS candidate.", "error");
+    return;
+  }
+
+  ensureBatchRowsFromTextarea();
+  const existing = new Set(state.batchInputs.map((item) => String(item.hts || "").replace(/\D/g, "")));
+  const newInputs = selected
+    .filter((item) => !existing.has(item.hts))
+    .map((item) => ({
+      hts: item.hts,
+      country: el.batchCountry.value,
+      flags: defaultFlags(),
+    }));
+
+  if (!newInputs.length) {
+    setCustomerImportStatus("Selected HTS codes are already in the batch table.", "warning");
+    return;
+  }
+
+  state.batchInputs.push(...newInputs);
+  state.batchRows = state.batchInputs.map((input) => lookup(input, state.data));
+  el.batchInput.value = state.batchInputs.map(formatBatchInputLine).join("\n");
+  renderBatch();
+  setCustomerImportStatus(`Imported ${newInputs.length} HTS code(s) into Batch Lookup.`, "success");
+}
+
+function ensureBatchRowsFromTextarea() {
+  if (!state.batchRows.length && !state.batchInputs.length && el.batchInput.value.trim() === DEFAULT_BATCH_TEXT) {
+    el.batchInput.value = "";
+  }
+  if (state.batchRows.length || state.batchInputs.length) return;
+  runBatch();
+}
+
+function defaultFlags() {
+  return { auto: false, truck: false, steel: false, aluminum: false, copper: false, wood: false, semiconductor: false };
+}
+
+function formatBatchInputLine(input) {
+  const flags = input.flags || {};
+  return [
+    input.hts || "",
+    input.country || el.batchCountry.value,
+    flags.auto ? "Y" : "",
+    flags.truck ? "Y" : "",
+    flags.steel ? "Y" : "",
+    flags.aluminum ? "Y" : "",
+    flags.copper ? "Y" : "",
+    flags.wood ? "Y" : "",
+    flags.semiconductor ? "Y" : "",
+  ].join(",").replace(/,+$/, "");
+}
+
+function confidenceBadge(score) {
+  const tone = score >= 75 ? "status-exemption" : score >= 55 ? "status-confirm" : "status-error";
+  return `<span class="status-badge ${tone}">${escapeHtml(`${score}%`)}</span>`;
+}
+
+function setCustomerImportStatus(message, tone = "") {
+  el.customerImportStatus.className = ["hint", tone ? `import-${tone}` : ""].filter(Boolean).join(" ");
+  el.customerImportStatus.textContent = message;
+}
+
 function runCompare() {
   if (!state.data || !el.hts.value.trim()) {
     el.compareTableBody.innerHTML = "";
@@ -325,7 +486,7 @@ function renderBatch() {
 
 function exportCsv() {
   if (!state.batchRows.length) runBatch();
-  const headers = ["HTS", "Country", "Need Confirm", "汽配", "卡配", "钢S", "铝A", "铜C", "木", "半导体", "MFN", "301", "301FL", "232", "OGA", "LIC", "Description"];
+  const headers = ["HTS", "Country", "Need Confirm", "Auto", "Truck", "Steel", "Aluminum", "Copper", "Wood", "Semi", "MFN", "301", "301FL", "232", "OGA", "LIC", "Description"];
   const rows = state.batchRows.map((row) => [
     row.hts,
     row.country,

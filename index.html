@@ -41,6 +41,31 @@
         </label>
         <button id="addRowButton" type="button">Add blank row</button>
       </div>
+      <div class="customer-import">
+        <label>
+          <span>Customer Excel</span>
+          <input id="customerWorkbook" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple />
+        </label>
+        <button id="scanCustomerWorkbookButton" type="button">Scan Excel</button>
+        <button id="importCustomerRowsButton" type="button" disabled>Import selected</button>
+      </div>
+      <p id="customerImportStatus" class="hint">Customer Excel files are scanned in this browser only. They are not uploaded.</p>
+      <div id="customerImportPanel" class="import-preview" hidden>
+        <div class="table-wrap">
+          <table id="customerImportTable">
+            <thead>
+              <tr>
+                <th>Use</th>
+                <th>HTS</th>
+                <th>Confidence</th>
+                <th>Source</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
       <p class="hint">Paste one HTS per line. You can also paste old CSV rows; country and Y flags can be edited in the table after running.</p>
       <textarea id="batchInput" rows="6">8429521020
 8304000000
@@ -52,13 +77,13 @@
               <th>HTS</th>
               <th>Country</th>
               <th>Need Confirm</th>
-              <th>汽配</th>
-              <th>卡配</th>
-              <th>钢S</th>
-              <th>铝A</th>
-              <th>铜C</th>
-              <th>木</th>
-              <th>半导体</th>
+              <th>Auto</th>
+              <th>Truck</th>
+              <th>Steel</th>
+              <th>Aluminum</th>
+              <th>Copper</th>
+              <th>Wood</th>
+              <th>Semi</th>
               <th>MFN</th>
               <th>301</th>
               <th>301 FL</th>
@@ -223,6 +248,7 @@
       </div>
     </section>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module" src="src/app.js"></script>
   </body>
 </html>

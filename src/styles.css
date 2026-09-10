@@ -224,6 +224,45 @@ button + button,
   margin-bottom: 0;
 }
 
+.customer-import {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  align-items: end;
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+
+.customer-import label {
+  margin-bottom: 0;
+}
+
+.import-preview {
+  margin-bottom: 12px;
+}
+
+#customerImportTable {
+  min-width: 760px;
+}
+
+.row-review {
+  background: var(--warn-bg);
+}
+
+.import-success {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.import-warning {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.import-error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .upload-form {
   display: grid;
   grid-template-columns: minmax(240px, 1.3fr) minmax(180px, 0.8fr) auto;
@@ -522,6 +561,10 @@ a {
   }
 
   .upload-form {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-import {
     grid-template-columns: 1fr;
   }
 

@@ -116,14 +116,14 @@ export function lookup(input, data) {
 function buildConfirmations(rule) {
   if (!rule) return [];
   const items = [];
-  if (hasText(rule.auto)) items.push({ key: "auto", label: "汽配", reason: rule.auto });
-  if (hasText(rule.truck)) items.push({ key: "truck", label: "卡配", reason: rule.truck });
+  if (hasText(rule.auto)) items.push({ key: "auto", label: "Auto", reason: rule.auto });
+  if (hasText(rule.truck)) items.push({ key: "truck", label: "Truck", reason: rule.truck });
   const materials = String(rule.materials || "");
-  if (materials.includes("S")) items.push({ key: "steel", label: "钢S", reason: rule.metal || rule.original });
-  if (materials.includes("A")) items.push({ key: "aluminum", label: "铝A", reason: rule.metal || rule.original });
-  if (materials.includes("C")) items.push({ key: "copper", label: "铜C", reason: rule.metal || rule.original });
-  if (hasText(rule.wood)) items.push({ key: "wood", label: "木", reason: rule.wood });
-  if (hasText(rule.semiconductor)) items.push({ key: "semiconductor", label: "半导体", reason: rule.semiconductor });
+  if (materials.includes("S")) items.push({ key: "steel", label: "Steel", reason: rule.metal || rule.original });
+  if (materials.includes("A")) items.push({ key: "aluminum", label: "Aluminum", reason: rule.metal || rule.original });
+  if (materials.includes("C")) items.push({ key: "copper", label: "Copper", reason: rule.metal || rule.original });
+  if (hasText(rule.wood)) items.push({ key: "wood", label: "Wood", reason: rule.wood });
+  if (hasText(rule.semiconductor)) items.push({ key: "semiconductor", label: "Semi", reason: rule.semiconductor });
   return items;
 }
 
@@ -254,7 +254,7 @@ export function searchTariff(query, data, limit = 25) {
 export function parseBatchLine(line) {
   const parts = line.split(",").map((part) => part.trim());
   const [hts = "", country = "CN"] = parts;
-  const yes = (value) => /^(y|yes|1|true|是|有)$/i.test(String(value || "").trim());
+  const yes = (value) => /^(y|yes|1|true|\u662f|\u6709)$/i.test(String(value || "").trim());
   if (parts.length >= 5) {
     return {
       hts,
@@ -275,13 +275,13 @@ export function parseBatchLine(line) {
     hts,
     country,
     flags: {
-      auto: /auto|汽配/.test(flagsRaw),
-      truck: /truck|卡配/.test(flagsRaw),
-      steel: /steel|钢/.test(flagsRaw),
-      aluminum: /aluminum|al|铝/.test(flagsRaw),
-      copper: /copper|cu|铜/.test(flagsRaw),
-      wood: /wood|木/.test(flagsRaw),
-      semiconductor: /semi|chip|半导体/.test(flagsRaw),
+      auto: /auto|car|\u6c7d\u914d/.test(flagsRaw),
+      truck: /truck|\u5361\u914d/.test(flagsRaw),
+      steel: /steel|\u94a2/.test(flagsRaw),
+      aluminum: /aluminum|al|\u94dd/.test(flagsRaw),
+      copper: /copper|cu|\u94dc/.test(flagsRaw),
+      wood: /wood|\u6728/.test(flagsRaw),
+      semiconductor: /semi|chip|\u534a\u5bfc\u4f53/.test(flagsRaw),
     },
   };
 }
