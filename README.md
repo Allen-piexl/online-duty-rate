@@ -33,9 +33,21 @@ The extractor automatically uses the highest-version matching workbook, such as 
 - `public/data/rules.json`
 - `public/data/summary.json`
 
-For online updates, open the Data Update section in the site and upload the newest workbook to `data-source/` on GitHub. The `Update duty data` GitHub Actions workflow will regenerate the public JSON files, run tests, and commit the generated data.
+For online updates, deploy this app on Vercel and use the Data Update section in the site. The Vercel upload API writes the workbook into `data-source/` and the `Update duty data` GitHub Actions workflow will regenerate the public JSON files, run tests, and commit the generated data.
 
 Only upload rule/reference workbooks. Do not upload customer order workbooks or files containing client data.
+
+### Vercel Upload Setup
+
+Import this repository into Vercel, then add these environment variables:
+
+- `UPLOAD_PASSWORD`: shared password for workbook upload.
+- `GITHUB_UPLOAD_TOKEN`: GitHub fine-grained token with repository contents read/write access.
+- `GITHUB_OWNER`: optional, defaults to `Allen-piexl`.
+- `GITHUB_REPO`: optional, defaults to `online-duty-rate`.
+- `GITHUB_BRANCH`: optional, defaults to `master`.
+
+After deployment, users can upload the newest `DUTY RATE LOOKUP` workbook from the Vercel site without a GitHub account. The workbook itself is still committed to the repository under `data-source/`, so keep uploading rule/reference workbooks only.
 
 ## Regenerate Data
 

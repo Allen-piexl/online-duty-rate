@@ -77,11 +77,21 @@
       <div class="section-title">
         <h2>Data Update</h2>
         <div class="button-row">
-          <a class="button-link" href="https://github.com/Allen-piexl/online-duty-rate/upload/master/data-source" target="_blank" rel="noreferrer">Upload Excel</a>
           <a class="button-link secondary" href="https://github.com/Allen-piexl/online-duty-rate/actions/workflows/update-data.yml" target="_blank" rel="noreferrer">Update Status</a>
         </div>
       </div>
-      <p class="hint">Upload the newest DUTY RATE LOOKUP workbook only. GitHub will refresh the public data after the update run passes.</p>
+      <form id="uploadForm" class="upload-form">
+        <label>
+          <span>Workbook</span>
+          <input id="uploadWorkbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+        </label>
+        <label>
+          <span>Upload password</span>
+          <input id="uploadPassword" type="password" autocomplete="current-password" />
+        </label>
+        <button id="uploadButton" type="submit">Upload Excel</button>
+      </form>
+      <p id="uploadStatus" class="hint">Upload the newest DUTY RATE LOOKUP workbook only. The update workflow will refresh public data after the upload.</p>
     </section>
 
     <main class="layout">

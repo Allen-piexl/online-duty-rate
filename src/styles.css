@@ -163,6 +163,11 @@ button:hover {
   background: var(--accent-dark);
 }
 
+button:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
+
 button,
 .button-link {
   text-decoration: none;
@@ -217,6 +222,27 @@ button + button,
 .batch-controls label {
   width: 260px;
   margin-bottom: 0;
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.3fr) minmax(180px, 0.8fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.upload-form label {
+  margin-bottom: 0;
+}
+
+.upload-success {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.upload-error {
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .result-empty {
@@ -493,6 +519,10 @@ a {
   .batch-controls {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .upload-form {
+    grid-template-columns: 1fr;
   }
 
   .batch-controls label {

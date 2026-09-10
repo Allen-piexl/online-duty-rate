@@ -29,6 +29,11 @@ const el = {
   compareTableBody: document.querySelector("#compareTable tbody"),
   searchInput: document.querySelector("#searchInput"),
   searchTableBody: document.querySelector("#searchTable tbody"),
+  uploadForm: document.querySelector("#uploadForm"),
+  uploadWorkbook: document.querySelector("#uploadWorkbook"),
+  uploadPassword: document.querySelector("#uploadPassword"),
+  uploadButton: document.querySelector("#uploadButton"),
+  uploadStatus: document.querySelector("#uploadStatus"),
 };
 
 async function init() {
@@ -51,9 +56,81 @@ function bindEvents() {
   document.querySelector("#addRowButton").addEventListener("click", addBatchRow);
   document.querySelector("#compareButton").addEventListener("click", runCompare);
   document.querySelector("#searchButton").addEventListener("click", runSearch);
+  if (el.uploadForm) {
+    el.uploadForm.addEventListener("submit", uploadWorkbook);
+  }
   el.searchInput.addEventListener("input", runSearch);
   for (const input of [el.country, el.hts, el.description, el.material, ...Object.values(el.flags)]) {
     input.addEventListener("input", runLookup);
+  }
+}
+
+async function uploadWorkbook(event) {
+  event.preventDefault();
+  const file = el.uploadWorkbook.files?.[0];
+  const password = el.uploadPassword.value;
+
+  if (!file) {
+    setUploadStatus("Choose an Excel workbook first.", "error");
+    return;
+  }
+  if (!/\.xlsx$/i.test(file.name) || !/duty rate lookup/i.test(file.name)) {
+    setUploadStatus("Use the newest DUTY RATE LOOKUP .xlsx workbook.", "error");
+    return;
+  }
+  if (!password) {
+    setUploadStatus("Enter the upload password.", "error");
+    return;
+  }
+
+  el.uploadButton.disabled = true;
+  setUploadStatus("Uploading workbook...", "");
+
+  try {
+    const contentBase64 = await readFileBase64(file);
+    const response = await fetch(uploadEndpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, filename: file.name, contentBase64 }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || "Upload failed.");
+    }
+    const statusLink = payload.actionUrl
+      ? ` <a href="${payload.actionUrl}" target="_blank" rel="noreferrer">Check update status</a>.`
+      : "";
+    setUploadStatus(`Uploaded ${escapeHtml(payload.filename)}. Public data refresh will start shortly.${statusLink}`, "success", true);
+    el.uploadForm.reset();
+  } catch (error) {
+    setUploadStatus(error.message, "error");
+  } finally {
+    el.uploadButton.disabled = false;
+  }
+}
+
+function uploadEndpoint() {
+  return window.DUTY_UPLOAD_ENDPOINT || localStorage.getItem("dutyUploadEndpoint") || "/api/upload";
+}
+
+function readFileBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const result = String(reader.result || "");
+      resolve(result.includes(",") ? result.split(",").pop() : result);
+    });
+    reader.addEventListener("error", () => reject(new Error("Could not read the workbook.")));
+    reader.readAsDataURL(file);
+  });
+}
+
+function setUploadStatus(message, tone, html = false) {
+  el.uploadStatus.className = ["hint", tone ? `upload-${tone}` : ""].filter(Boolean).join(" ");
+  if (html) {
+    el.uploadStatus.innerHTML = message;
+  } else {
+    el.uploadStatus.textContent = message;
   }
 }
 
